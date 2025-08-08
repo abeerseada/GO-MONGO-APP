@@ -1,0 +1,50 @@
+- name: go-mongo-playbook
+  hosts: localhost
+  vars_files:
+  - secrets.yaml
+  vars:
+    DOCKER_ENV:
+    - dev
+    - prod
+  tasks:
+  - name: Stop go-container container if exists
+    command: docker stop go-container
+    ignore_errors: yes
+
+  - name: Stop mongo-container container if exists
+    command: docker stop mongo-container
+    ignore_errors: yes
+
+  - name: Remove go-container container if exists
+    command: docker rm go-container
+    ignore_errors: yes
+
+  - name: Remove mongo-container container if exists
+    command: docker rm mongo-container
+    ignore_errors: yes
+
+
+
+  - name: Remove abeerseada/go-app-with-db image if exists
+    command: docker rmi abeerseada/go-app-with-db:{{ item }} 
+    ignore_errors: yes
+    with_items: "{{ DOCKER_ENV }}"
+
+  - name: Build abeerseada/go-app-with-db image 
+    command: docker build --target {{ item }} -t abeerseada/go-app-with-db:{{ item }} .
+    ignore_errors: yes
+    with_items: "{{ DOCKER_ENV }}"
+  
+  - name: Login to DockerHub
+
+    command: docker login -u abeerseada -p {{ DOCKERHUB_PASSWORD }}
+    ignore_errors: no
+
+  - name: Push abeerseada/go-app-with-db image
+    command: docker push abeerseada/go-app-with-db:{{ item }}
+    ignore_errors: yes
+    with_items: "{{ DOCKER_ENV }}"
+
+
+  - name: Docker-Compose UP only for prod
+    command: docker-compose up 
